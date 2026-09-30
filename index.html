@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Craveman RSM Live Admin Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-100 p-3 max-w-md mx-auto text-slate-800 font-sans pb-28">
+
+  <!-- RSM HEADER -->
+  <div class="bg-gradient-to-b from-[#1b1c6e] via-[#21237a] to-[#161758] text-white p-4 rounded-3xl shadow-xl mb-3 text-center border border-blue-900/40">
+    <h1 class="text-2xl font-black italic tracking-wide uppercase">
+      <span class="text-[#e2231a]">CRAVEMAN</span> RSM LIVE
+    </h1>
+    <div class="inline-block bg-[#48a528] text-white text-[9px] font-black px-3 py-0.5 rounded-full uppercase mt-1">
+      Shaik Enterprises - Admin Monitor
+    </div>
+    <div class="mt-2 text-xs font-bold text-yellow-300">Live Field Team Activity Tracking</div>
+  </div>
+
+  <!-- DATE FILTER BAR -->
+  <div class="bg-white p-3 rounded-2xl shadow-sm border mb-3 flex items-center justify-between text-xs">
+    <span class="font-bold text-slate-700 uppercase">📅 Filter Date:</span>
+    <input type="date" id="filterDateInput" onchange="fetchSheetDBData()" class="border p-1.5 rounded-xl font-semibold bg-slate-50 outline-none">
+  </div>
+
+  <!-- SUMMARY CARDS TABLE -->
+  <div class="grid grid-cols-2 gap-2 mb-3">
+    <div class="bg-white p-3 rounded-2xl shadow-sm border text-center">
+      <div class="text-[10px] text-slate-400 font-bold uppercase">Total Team Sales</div>
+      <div class="text-lg font-black text-amber-700 mt-0.5">₹<span id="adminTotalSales">0</span></div>
+    </div>
+    <div class="bg-white p-3 rounded-2xl shadow-sm border text-center">
+      <div class="text-[10px] text-slate-400 font-bold uppercase">Total Boxes Sold</div>
+      <div class="text-lg font-black text-purple-800 mt-0.5" id="adminTotalBoxes">0</div>
+    </div>
+    <div class="bg-white p-3 rounded-2xl shadow-sm border text-center">
+      <div class="text-[10px] text-slate-400 font-bold uppercase">Total Orders</div>
+      <div class="text-base font-black text-emerald-700 mt-0.5" id="adminTotalOrders">0</div>
+    </div>
+    <div class="bg-white p-3 rounded-2xl shadow-sm border text-center">
+      <div class="text-[10px] text-slate-400 font-bold uppercase">Total Visits</div>
+      <div class="text-base font-black text-blue-800 mt-0.5" id="adminTotalVisits">0</div>
+    </div>
+  </div>
+
+  <!-- LIVE FEED CONTAINER -->
+  <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+    <div class="flex justify-between items-center border-b pb-2">
+      <span class="text-xs font-black text-slate-700 uppercase tracking-wide">Live Team Activity Feed</span>
+      <button onclick="fetchSheetDBData()" class="text-[11px] font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200">
+        🔄 Refresh Live
+      </button>
+    </div>
+
+    <div id="liveFeedList" class="space-y-2.5 max-h-[450px] overflow-y-auto pr-1">
+      <div class="text-center text-xs text-slate-400 py-6">Loading Live Data from Google Sheet...</div>
+    </div>
+  </div>
+
+  <script>
+    const SHEETDB_API_URL = "https://sheetdb.io/api/v1/pfa3wfno58xy9";
+
+    // Set default date picker to today (MM/DD/YYYY format matching locale date or YYYY-MM-DD)
+    function setTodayDate() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      let mm = today.getMonth() + 1;
+      let dd = today.getDate();
+      if (mm < 10) mm = '0' + mm;
+      if (dd < 10) dd = '0' + dd;
+      document.getElementById("filterDateInput").value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    async function fetchSheetDBData() {
+      const feedList = document.getElementById("liveFeedList");
+      const selectedDateVal = document.getElementById("filterDateInput").value; // YYYY-MM-DD
+      
+      try {
+        const res = await fetch(SHEETDB_API_URL);
+        const rows = await res.json();
+        
+        if (!rows || rows.length === 0) {
+          feedList.innerHTML = `<div class="text-center text-xs text-slate-400 py-6">No activity records found.</div>`;
+          return;
+        }
+
+        feedList.innerHTML = "";
+        let totalSales = 0;
+        let totalBoxes = 0;
+        let totalOrders = 0;
+        let totalVisits = 0;
+        let countShown = 0;
+
+        rows.reverse().forEach(row => {
+          const rawDate = row.Date || ""; // e.g., "9/30/2026" or "30/09/2026"
+          const salesman = row.Salesman || "Unknown";
+          const action = row.Action || "Update";
+          const shop = row.Shop_Name || "-";
+          const boxes = parseInt(row.Boxes) || 0;
+          const sale = parseFloat(row.Sale_Amount) || 0;
+          const timestamp = row.Timestamp || "--";
+          const gps = row.GPS_Location || "#";
+
+          // Date filtering check (matches selected date)
+          if (selectedDateVal) {
+            const [selYear, selMonth, selDay] = selectedDateVal.split('-');
+            // Parse rawDate whether it's M/D/YYYY or D/M/YYYY
+            let dateMatch = false;
+            if (rawDate.includes('/')) {
+              const parts = rawDate.split('/');
+              if (parts.length === 3) {
+                // Check M/D/YYYY vs D/M/YYYY
+                let pMonth = parts[0].padStart(2, '0');
+                let pDay = parts[1].padStart(2, '0');
+                let pYear = parts[2];
+                if (pYear.length === 2) pYear = '20' + pYear;
+
+                if (pYear === selYear && pMonth === selMonth && pDay === selDay) {
+                  dateMatch = true;
+                } else if (pYear === selYear && pDay === selMonth && pMonth === selDay) {
+                  dateMatch = true;
+                }
+              }
+            }
+            if (!dateMatch && rawDate !== selectedDateVal) return; // Skip if date doesn't match
+          }
+
+          countShown++;
+          totalSales += sale;
+          totalBoxes += boxes;
+          if (action.includes("Order")) totalOrders++;
+          totalVisits++;
+
+          let badgeColor = "bg-blue-100 text-blue-800";
+          if (action.includes("Order")) badgeColor = "bg-emerald-100 text-emerald-800 font-bold";
+          if (action.includes("Punch IN")) badgeColor = "bg-indigo-100 text-indigo-800";
+          if (action.includes("Punch OUT")) badgeColor = "bg-rose-100 text-rose-800";
+          if (action.includes("Visit")) badgeColor = "bg-amber-100 text-amber-800";
+
+          let gpsBtn = gps !== "#" && gps !== "-" ? `<a href="${gps}" target="_blank" class="bg-blue-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg mt-1 inline-block">📍 View GPS Map</a>` : "";
+
+          feedList.innerHTML += `
+            <div class="border p-3 rounded-xl bg-slate-50 space-y-1">
+              <div class="flex justify-between items-center">
+                <span class="font-black text-blue-900 text-xs">👤 ${salesman}</span>
+                <span class="text-[9px] px-2 py-0.5 rounded-full ${badgeColor}">${action}</span>
+              </div>
+              <div class="text-[11px] text-slate-700 font-medium">Shop: <b>${shop}</b></div>
+              <div class="flex justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200">
+                <span>Boxes: <b>${boxes}</b> | Sale: <b>₹${sale}</b></span>
+                <span>${timestamp}</span>
+              </div>
+              ${gpsBtn}
+            </div>`;
+        });
+
+        if (countShown === 0) {
+          feedList.innerHTML = `<div class="text-center text-xs text-slate-400 py-6">No records found for selected date.</div>`;
+        }
+
+        document.getElementById("adminTotalSales").innerText = totalSales.toFixed(0);
+        document.getElementById("adminTotalBoxes").innerText = totalBoxes;
+        document.getElementById("adminTotalOrders").innerText = totalOrders;
+        document.getElementById("adminTotalVisits").innerText = totalVisits;
+
+      } catch (e) {
+        feedList.innerHTML = `<div class="text-center text-xs text-red-500 py-4">Error loading live sheet data.</div>`;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setTodayDate();
+      fetchSheetDBData();
+      setInterval(fetchSheetDBData, 15000);
+    });
+  </script>
+</body>
+</html>
