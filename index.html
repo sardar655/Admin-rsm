@@ -29,15 +29,15 @@
       <span class="font-bold text-slate-700 uppercase">👤 Select Member:</span>
       <select id="filterSalesmanSelect" onchange="fetchSheetDBData()" class="border p-1.5 rounded-xl font-semibold bg-slate-50 outline-none w-48">
         <option value="ALL">All Team (Full View)</option>
-        <option value="Shaik Sameer">Shaik Sameer (SSO)</option>
-        <option value="Kranti">Kranti (SO)</option>
-        <option value="Thirumalaiah">Thirumalaiah (SO)</option>
-        <option value="Tella Ashok">Tella Ashok (SO)</option>
-        <option value="Venkat Rao">Venkat Rao (SO)</option>
-        <option value="Vamsi Raj">Vamsi Raj (SO)</option>
-        <option value="Syed Irfan">Syed Irfan (SO)</option>
-        <option value="E Krishna">E Krishna (SE)</option>
-        <option value="Mohammadd Zaheer Sha">Mohammadd Zaheer Sha (ASM)</option>
+        <option value="Shaik Sameer">Shaik Sameer</option>
+        <option value="Kranti">Kranti</option>
+        <option value="Thirumalaiah">Thirumalaiah</option>
+        <option value="Tella Ashok">Tella Ashok</option>
+        <option value="Venkat Rao">Venkat Rao</option>
+        <option value="Vamsi Raj">Vamsi Raj</option>
+        <option value="Syed Irfan">Syed Irfan</option>
+        <option value="E Balakrishna">E Balakrishna</option>
+        <option value="Mohammadd Zaheer Sha">Mohammadd Zaheer Sha</option>
       </select>
     </div>
   </div>
@@ -120,7 +120,7 @@
           const timestamp = row.Timestamp || "--";
           const gps = row.GPS_Location || "#";
 
-          if (selectedSalesman !== "ALL" && salesman !== selectedSalesman) {
+          if (selectedSalesman !== "ALL" && salesman.trim() !== selectedSalesman.trim()) {
             return;
           }
 
@@ -159,23 +159,23 @@
 
           let gpsBtn = gps !== "#" && gps !== "-" ? `<a href="${gps}" target="_blank" class="bg-blue-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg mt-1 inline-block">📍 View GPS Map</a>` : "";
 
-        feedList.innerHTML += `
-          <div class="border p-3 rounded-xl bg-slate-50 space-y-1">
-            <div class="flex justify-between items-center">
-              <span class="font-black text-blue-900 text-xs">👤 ${salesman}</span>
-              <span class="text-[9px] px-2 py-0.5 rounded-full ${badgeColor}">${action}</span>
-            </div>
-            <div class="text-[11px] text-slate-700 font-medium">Shop: <b>${shop}</b></div>
-            <div class="flex justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200">
-              <span>Boxes: <b>${boxes}</b> | Sale: <b>₹${sale}</b></span>
-              <span>${timestamp}</span>
-            </div>
-            ${gpsBtn}
-          </div>`;
+          feedList.innerHTML += `
+            <div class="border p-3 rounded-xl bg-slate-50 space-y-1">
+              <div class="flex justify-between items-center">
+                <span class="font-black text-blue-900 text-xs">👤 ${salesman}</span>
+                <span class="text-[9px] px-2 py-0.5 rounded-full ${badgeColor}">${action}</span>
+              </div>
+              <div class="text-[11px] text-slate-700 font-medium">Shop: <b>${shop}</b></div>
+              <div class="flex justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200">
+                <span>Boxes: <b>${boxes}</b> | Sale: <b>₹${sale}</b></span>
+                <span>${timestamp}</span>
+              </div>
+              ${gpsBtn}
+            </div>`;
         });
 
         if (countShown === 0) {
-          feedList.innerHTML = `<div class="text-center text-xs text-slate-400 py-6">No records found for selected filters.</div>`;
+          feedList.innerHTML = `<div class="text-center text-xs text-slate-400 py-6">No records found for selected filters (Try clearing date or selecting All Team).</div>`;
         }
 
         document.getElementById("adminTotalSales").innerText = totalSales.toFixed(0);
