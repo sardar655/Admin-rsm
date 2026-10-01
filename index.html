@@ -19,28 +19,45 @@
     <div class="mt-2 text-xs font-bold text-yellow-300">Live Field Team Activity Tracking</div>
   </div>
 
-  <!-- DATE FILTER BAR -->
-  <div class="bg-white p-3 rounded-2xl shadow-sm border mb-3 flex items-center justify-between text-xs">
-    <span class="font-bold text-slate-700 uppercase">📅 Filter Date:</span>
-    <input type="date" id="filterDateInput" onchange="fetchSheetDBData()" class="border p-1.5 rounded-xl font-semibold bg-slate-50 outline-none">
+  <!-- FILTERS BAR (Date & Salesman) -->
+  <div class="bg-white p-3 rounded-2xl shadow-sm border mb-3 space-y-2 text-xs">
+    <div class="flex items-center justify-between">
+      <span class="font-bold text-slate-700 uppercase">📅 Filter Date:</span>
+      <input type="date" id="filterDateInput" onchange="fetchSheetDBData()" class="border p-1.5 rounded-xl font-semibold bg-slate-50 outline-none">
+    </div>
+    <div class="flex items-center justify-between pt-1 border-t">
+      <span class="font-bold text-slate-700 uppercase">👤 Select Member:</span>
+      <select id="filterSalesmanSelect" onchange="fetchSheetDBData()" class="border p-1.5 rounded-xl font-semibold bg-slate-50 outline-none w-48">
+        <option value="ALL">All Team (Full View)</option>
+        <option value="Shaik Sameer">Shaik Sameer (SSO)</option>
+        <option value="Kranti">Kranti (SO)</option>
+        <option value="Thirumalaiah">Thirumalaiah (SO)</option>
+        <option value="Tella Ashok">Tella Ashok (SO)</option>
+        <option value="Venkat Rao">Venkat Rao (SO)</option>
+        <option value="Vamsi Raj">Vamsi Raj (SO)</option>
+        <option value="Syed Irfan">Syed Irfan (SO)</option>
+        <option value="E Krishna">E Krishna (SE)</option>
+        <option value="Mohammadd Zaheer Sha">Mohammadd Zaheer Sha (ASM)</option>
+      </select>
+    </div>
   </div>
 
   <!-- SUMMARY CARDS TABLE -->
   <div class="grid grid-cols-2 gap-2 mb-3">
     <div class="bg-white p-3 rounded-2xl shadow-sm border text-center">
-      <div class="text-[10px] text-slate-400 font-bold uppercase">Total Team Sales</div>
+      <div class="text-[10px] text-slate-400 font-bold uppercase">Total Sales</div>
       <div class="text-lg font-black text-amber-700 mt-0.5">₹<span id="adminTotalSales">0</span></div>
     </div>
     <div class="bg-white p-3 rounded-2xl shadow-sm border text-center">
-      <div class="text-[10px] text-slate-400 font-bold uppercase">Total Boxes Sold</div>
+      <div class="text-[10px] text-slate-400 font-bold uppercase">Boxes Sold</div>
       <div class="text-lg font-black text-purple-800 mt-0.5" id="adminTotalBoxes">0</div>
     </div>
     <div class="bg-white p-3 rounded-2xl shadow-sm border text-center">
-      <div class="text-[10px] text-slate-400 font-bold uppercase">Total Orders</div>
+      <div class="text-[10px] text-slate-400 font-bold uppercase">Orders</div>
       <div class="text-base font-black text-emerald-700 mt-0.5" id="adminTotalOrders">0</div>
     </div>
     <div class="bg-white p-3 rounded-2xl shadow-sm border text-center">
-      <div class="text-[10px] text-slate-400 font-bold uppercase">Total Visits</div>
+      <div class="text-[10px] text-slate-400 font-bold uppercase">Visits</div>
       <div class="text-base font-black text-blue-800 mt-0.5" id="adminTotalVisits">0</div>
     </div>
   </div>
@@ -48,13 +65,13 @@
   <!-- LIVE FEED CONTAINER -->
   <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
     <div class="flex justify-between items-center border-b pb-2">
-      <span class="text-xs font-black text-slate-700 uppercase tracking-wide">Live Team Activity Feed</span>
+      <span class="text-xs font-black text-slate-700 uppercase tracking-wide">Live Activity Feed</span>
       <button onclick="fetchSheetDBData()" class="text-[11px] font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-lg border border-blue-200">
         🔄 Refresh Live
       </button>
     </div>
 
-    <div id="liveFeedList" class="space-y-2.5 max-h-[450px] overflow-y-auto pr-1">
+    <div id="liveFeedList" class="space-y-2.5 max-h-[400px] overflow-y-auto pr-1">
       <div class="text-center text-xs text-slate-400 py-6">Loading Live Data from Google Sheet...</div>
     </div>
   </div>
@@ -62,7 +79,6 @@
   <script>
     const SHEETDB_API_URL = "https://sheetdb.io/api/v1/pfa3wfno58xy9";
 
-    // Set default date picker to today (MM/DD/YYYY format matching locale date or YYYY-MM-DD)
     function setTodayDate() {
       const today = new Date();
       const yyyy = today.getFullYear();
@@ -75,7 +91,8 @@
 
     async function fetchSheetDBData() {
       const feedList = document.getElementById("liveFeedList");
-      const selectedDateVal = document.getElementById("filterDateInput").value; // YYYY-MM-DD
+      const selectedDateVal = document.getElementById("filterDateInput").value;
+      const selectedSalesman = document.getElementById("filterSalesmanSelect").value;
       
       try {
         const res = await fetch(SHEETDB_API_URL);
@@ -94,7 +111,7 @@
         let countShown = 0;
 
         rows.reverse().forEach(row => {
-          const rawDate = row.Date || ""; // e.g., "9/30/2026" or "30/09/2026"
+          const rawDate = row.Date || "";
           const salesman = row.Salesman || "Unknown";
           const action = row.Action || "Update";
           const shop = row.Shop_Name || "-";
@@ -103,15 +120,16 @@
           const timestamp = row.Timestamp || "--";
           const gps = row.GPS_Location || "#";
 
-          // Date filtering check (matches selected date)
+          if (selectedSalesman !== "ALL" && salesman !== selectedSalesman) {
+            return;
+          }
+
           if (selectedDateVal) {
             const [selYear, selMonth, selDay] = selectedDateVal.split('-');
-            // Parse rawDate whether it's M/D/YYYY or D/M/YYYY
             let dateMatch = false;
             if (rawDate.includes('/')) {
               const parts = rawDate.split('/');
               if (parts.length === 3) {
-                // Check M/D/YYYY vs D/M/YYYY
                 let pMonth = parts[0].padStart(2, '0');
                 let pDay = parts[1].padStart(2, '0');
                 let pYear = parts[2];
@@ -124,7 +142,7 @@
                 }
               }
             }
-            if (!dateMatch && rawDate !== selectedDateVal) return; // Skip if date doesn't match
+            if (!dateMatch && rawDate !== selectedDateVal) return;
           }
 
           countShown++;
@@ -141,23 +159,23 @@
 
           let gpsBtn = gps !== "#" && gps !== "-" ? `<a href="${gps}" target="_blank" class="bg-blue-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg mt-1 inline-block">📍 View GPS Map</a>` : "";
 
-          feedList.innerHTML += `
-            <div class="border p-3 rounded-xl bg-slate-50 space-y-1">
-              <div class="flex justify-between items-center">
-                <span class="font-black text-blue-900 text-xs">👤 ${salesman}</span>
-                <span class="text-[9px] px-2 py-0.5 rounded-full ${badgeColor}">${action}</span>
-              </div>
-              <div class="text-[11px] text-slate-700 font-medium">Shop: <b>${shop}</b></div>
-              <div class="flex justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200">
-                <span>Boxes: <b>${boxes}</b> | Sale: <b>₹${sale}</b></span>
-                <span>${timestamp}</span>
-              </div>
-              ${gpsBtn}
-            </div>`;
+        feedList.innerHTML += `
+          <div class="border p-3 rounded-xl bg-slate-50 space-y-1">
+            <div class="flex justify-between items-center">
+              <span class="font-black text-blue-900 text-xs">👤 ${salesman}</span>
+              <span class="text-[9px] px-2 py-0.5 rounded-full ${badgeColor}">${action}</span>
+            </div>
+            <div class="text-[11px] text-slate-700 font-medium">Shop: <b>${shop}</b></div>
+            <div class="flex justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-200">
+              <span>Boxes: <b>${boxes}</b> | Sale: <b>₹${sale}</b></span>
+              <span>${timestamp}</span>
+            </div>
+            ${gpsBtn}
+          </div>`;
         });
 
         if (countShown === 0) {
-          feedList.innerHTML = `<div class="text-center text-xs text-slate-400 py-6">No records found for selected date.</div>`;
+          feedList.innerHTML = `<div class="text-center text-xs text-slate-400 py-6">No records found for selected filters.</div>`;
         }
 
         document.getElementById("adminTotalSales").innerText = totalSales.toFixed(0);
